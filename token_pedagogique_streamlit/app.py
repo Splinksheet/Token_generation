@@ -3,6 +3,7 @@ import html
 import io
 import math
 import os
+from pathlib import Path
 from datetime import datetime
 from typing import Any
 
@@ -28,6 +29,51 @@ TOKEN_PALETTE = [
     "#E5DBFF",
     "#FFD8E8",
 ]
+
+EXPLICATIONS_MARKDOWN = """
+## Quelques explications
+
+L'objet de l'application est de montrer le caractère aléatoire de la génération des tokens par un modèle de LLM.
+
+Elle propose, à partir d'une question simple, de :
+- Générer 5 réponses différentes.
+- Décomposer le process de génération token par token pour chacune des réponses.
+- Proposer le process de génération token par token en ne retenant systématiquement que le token le plus probable (équivalent à une température égale à 0).
+
+L'appli s'appuie sur ChatGPT 4o mini pour la génération des 5 réponses.
+
+Par défaut, l'appli propose :
+- Une question simple.
+- Une température de 0.7.
+- Une longueur max de la réponse à 30 mots.
+- Le nombre de tokens probables sélectionnables (`top n logprobs`) à 5.
+
+Ces paramètres peuvent être modifiés avant le lancement de l'application.
+
+Les boutons numérotés de 1 à 5 permettent d'afficher le process de génération de la réponse, token par token.
+
+Ce schéma illustre, de manière simplifiée, la génération de texte par les modèles de langage token par token (un token étant une unité de texte : morceau de mot, mot, ponctuation, etc.).
+
+### 1) Ce que le modèle reçoit : contexte et prompt
+À gauche, le modèle dispose d'un contexte (instructions, historique de la conversation, informations déjà fournies) et d'un prompt (la demande de l'utilisateur). Selon l'application, ce contexte peut être enrichi par des sources externes (Web search, RAG - Retrieval-Augmented Generation).
+
+### 2) Découpage en tokens et traitement d'entrée
+Le modèle convertit l'entrée en tokens. Cette étape standardise le contenu (mots, sous-mots, chiffres, ponctuation) afin qu'il puisse être traité mathématiquement.
+
+### 3) Génération des tokens probables : une liste pondérée
+Une fois l'entrée traitée, le modèle calcule la suite la plus plausible, non pas en produisant directement une phrase, mais en estimant une distribution de probabilités sur le prochain token.
+
+### 4) Sélection du token : l'endroit où intervient l'aléatoire
+L'étape suivante consiste à sélectionner un token parmi les candidats. C'est ici que l'application peut mettre en évidence le caractère aléatoire.
+
+### 5) Production du texte : répétition du cycle
+Une fois le token sélectionné, il devient un token de sortie, est ajouté au texte, puis le modèle recommence le cycle pour générer le token suivant (jusqu'à obtenir une phrase, un paragraphe, etc.).
+"""
+
+EXPLICATIONS_IMAGE_ANCHOR = (
+    "Ce schéma illustre, de manière simplifiée, la génération de texte par les modèles de langage "
+    "token par token (un token étant une unité de texte : morceau de mot, mot, ponctuation, etc.)."
+)
 
 
 def field(obj: Any, name: str, default: Any = None) -> Any:
@@ -603,10 +649,38 @@ def run_demo(
 
 def main() -> None:
     st.set_page_config(page_title="Token Generation Lab", layout="wide")
-    st.title("Comment une IA choisit ses mots")
-    st.caption(
-        "Comparaison de 5 réponses indépendantes + visualisation des top logprobs par token."
-    )
+    page = str(st.query_params.get("page", "")).strip().lower()
+    if page == "explications":
+        st.title("Page d'explications")
+        base_dir = Path(__file__).resolve().parent
+        image_candidates = [
+            base_dir / "Process_LLM.jpeg",
+            base_dir / "Process_LLM.jpg",
+        ]
+        image_path = next((p for p in image_candidates if p.exists()), None)
+        def render_explanations_image(path) -> None:
+            if path is None:
+                st.warning(
+                    "Image introuvable. Place le fichier 'Process_LLM.jpeg' dans le dossier "
+                    "'token_pedagogique_streamlit'."
+                )
+                return
+            image_col, _ = st.columns([3, 6])
+            with image_col:
+                st.image(str(path), caption="Processus de génération token par token", use_container_width=True)
+        if EXPLICATIONS_IMAGE_ANCHOR in EXPLICATIONS_MARKDOWN:
+            before, after = EXPLICATIONS_MARKDOWN.split(EXPLICATIONS_IMAGE_ANCHOR, 1)
+            st.markdown(before + EXPLICATIONS_IMAGE_ANCHOR)
+            render_explanations_image(image_path)
+            st.markdown(after)
+        else:
+            st.markdown(EXPLICATIONS_MARKDOWN)
+            render_explanations_image(image_path)
+        st.link_button("Retour à l'application", "?", use_container_width=False)
+        return
+
+    st.title("Comment une IA générative choisit ses mots")
+    st.link_button("Quelques explications", "?page=explications", use_container_width=False)
 
     if OpenAI is None:
         st.error("Le package 'openai' est absent. Installe les dépendances d'abord.")
