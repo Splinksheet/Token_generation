@@ -603,7 +603,7 @@ def run_demo(
 
 def main() -> None:
     st.set_page_config(page_title="Token Generation Lab", layout="wide")
-    st.title("Application pédagogique : génération de token")
+    st.title("Comment une IA choisit ses mots")
     st.caption(
         "Comparaison de 5 réponses indépendantes + visualisation des top logprobs par token."
     )
@@ -629,8 +629,8 @@ def main() -> None:
         api_key_default = os.getenv("OPENAI_API_KEY", "")
         api_key = st.text_input("OPENAI_API_KEY", value=api_key_default, type="password")
         model = st.text_input("Modèle", value="gpt-4o-mini")
-        target_words = st.number_input("Nombre de mots cible", min_value=5, max_value=80, value=20)
-        temperature = st.slider("Température (5 réponses)", min_value=0.0, max_value=2.0, value=1.0, step=0.1)
+        target_words = st.number_input("Nombre de mots cible", min_value=5, max_value=80, value=30)
+        temperature = st.slider("Température (5 réponses)", min_value=0.0, max_value=2.0, value=0.7, step=0.1)
         top_n = st.slider("Top n logprobs", min_value=1, max_value=20, value=5, step=1)
         st.markdown("**Surlignage des tokens**")
         toggle_label = (
@@ -659,7 +659,7 @@ def main() -> None:
 
     question = st.text_area(
         "Question courte",
-        value="Pourquoi le ciel est bleu ?",
+        value="Quels sont les piliers de l'intelligence économique",
         height=110,
     )
 
